@@ -2,6 +2,35 @@ import SwiftUI
 
 struct TimerView: View {
     @Bindable var timer: PomodoroTimer
+    @State private var showingSettings = false
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if showingSettings {
+                    SettingsView(timer: timer)
+                } else {
+                    MainView(timer: timer)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: showingSettings)
+
+            Button {
+                showingSettings.toggle()
+            } label: {
+                Image(systemName: showingSettings ? "xmark" : "gearshape")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .padding(14)
+        }
+        .frame(width: 300)
+    }
+}
+
+private struct MainView: View {
+    @Bindable var timer: PomodoroTimer
 
     private var phaseColor: Color {
         switch timer.phase {
@@ -33,7 +62,6 @@ struct TimerView: View {
             }
             .frame(width: 190, height: 190)
 
-            // Session dots (4 pomodoros = 1 cycle)
             HStack(spacing: 10) {
                 ForEach(0..<4, id: \.self) { i in
                     Circle()
@@ -43,7 +71,6 @@ struct TimerView: View {
                 }
             }
 
-            // Controls
             HStack(spacing: 24) {
                 Button(action: timer.reset) {
                     Image(systemName: "arrow.counterclockwise")
@@ -84,6 +111,5 @@ struct TimerView: View {
             .font(.caption)
         }
         .padding(24)
-        .frame(width: 300)
     }
 }

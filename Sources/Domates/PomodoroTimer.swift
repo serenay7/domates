@@ -8,14 +8,6 @@ enum TimerPhase: String {
     case shortBreak = "Short Break"
     case longBreak = "Long Break"
 
-    var duration: TimeInterval {
-        switch self {
-        case .work:       return 25 * 60
-        case .shortBreak: return 5 * 60
-        case .longBreak:  return 15 * 60
-        }
-    }
-
     var label: String { rawValue }
 }
 
@@ -23,18 +15,56 @@ enum TimerPhase: String {
 @Observable
 final class PomodoroTimer {
     var phase: TimerPhase = .work
-    var timeRemaining: TimeInterval = TimerPhase.work.duration
+    var timeRemaining: TimeInterval
     var isRunning = false
     var sessionsCompleted = 0
 
+    var workMinutes: Int {
+        didSet {
+            UserDefaults.standard.set(workMinutes, forKey: "workMinutes")
+            if phase == .work && !isRunning { timeRemaining = duration(for: .work) }
+        }
+    }
+    var shortBreakMinutes: Int {
+        didSet {
+            UserDefaults.standard.set(shortBreakMinutes, forKey: "shortBreakMinutes")
+            if phase == .shortBreak && !isRunning { timeRemaining = duration(for: .shortBreak) }
+        }
+    }
+    var longBreakMinutes: Int {
+        didSet {
+            UserDefaults.standard.set(longBreakMinutes, forKey: "longBreakMinutes")
+            if phase == .longBreak && !isRunning { timeRemaining = duration(for: .longBreak) }
+        }
+    }
+
     private var timer: Timer?
+
+    init() {
+        let ud = UserDefaults.standard
+        let wm = ud.object(forKey: "workMinutes")       != nil ? ud.integer(forKey: "workMinutes")       : 25
+        let sb = ud.object(forKey: "shortBreakMinutes") != nil ? ud.integer(forKey: "shortBreakMinutes") : 5
+        let lb = ud.object(forKey: "longBreakMinutes")  != nil ? ud.integer(forKey: "longBreakMinutes")  : 15
+        workMinutes       = wm
+        shortBreakMinutes = sb
+        longBreakMinutes  = lb
+        timeRemaining     = TimeInterval(wm * 60)
+    }
+
+    func duration(for phase: TimerPhase) -> TimeInterval {
+        switch phase {
+        case .work:       return TimeInterval(workMinutes * 60)
+        case .shortBreak: return TimeInterval(shortBreakMinutes * 60)
+        case .longBreak:  return TimeInterval(longBreakMinutes * 60)
+        }
+    }
 
     var timeString: String {
         String(format: "%02d:%02d", Int(timeRemaining) / 60, Int(timeRemaining) % 60)
     }
 
     var progress: Double {
-        1.0 - timeRemaining / phase.duration
+        1.0 - timeRemaining / duration(for: phase)
     }
 
     func toggle() {
@@ -57,7 +87,7 @@ final class PomodoroTimer {
 
     func reset() {
         pause()
-        timeRemaining = phase.duration
+        timeRemaining = duration(for: phase)
     }
 
     func skip() {
@@ -82,7 +112,7 @@ final class PomodoroTimer {
         } else {
             phase = .work
         }
-        timeRemaining = phase.duration
+        timeRemaining = duration(for: phase)
         sendNotification()
     }
 
@@ -92,7 +122,7 @@ final class PomodoroTimer {
         } else {
             phase = .work
         }
-        timeRemaining = phase.duration
+        timeRemaining = duration(for: phase)
     }
 
     private func sendNotification() {

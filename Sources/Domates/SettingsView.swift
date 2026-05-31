@@ -1,5 +1,4 @@
 import SwiftUI
-import UserNotifications
 
 struct SettingsView: View {
     @Bindable var timer: PomodoroTimer
@@ -22,7 +21,7 @@ struct SettingsView: View {
 
             Divider()
 
-            // Alerts
+            // Sound
             VStack(alignment: .leading, spacing: 12) {
                 Label("Alerts", systemImage: "bell")
                     .font(.headline)
@@ -36,34 +35,10 @@ struct SettingsView: View {
                     }
                 }
                 .toggleStyle(.switch)
-
-                Toggle(isOn: $timer.notificationsEnabled) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "app.badge")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 16)
-                        Text("Notifications")
-                    }
-                }
-                .toggleStyle(.switch)
-                .onChange(of: timer.notificationsEnabled) { _, enabled in
-                    if enabled { requestNotificationPermission() }
-                }
-
-                if timer.notificationsEnabled {
-                    Text("Allow in System Settings › Notifications if banners don't appear.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
             }
         }
         .padding(24)
         .frame(maxHeight: .infinity, alignment: .top)
-    }
-
-    private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 }
 

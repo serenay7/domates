@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import UserNotifications
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -10,7 +9,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var tickTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         NSApp.setActivationPolicy(.accessory)
         setupMenuBar()
         startStatusBarTick()

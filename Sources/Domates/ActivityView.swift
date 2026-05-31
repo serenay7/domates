@@ -3,56 +3,39 @@ import SwiftUI
 struct ActivityView: View {
     let store: SessionStore
 
-    private let weeksToShow = 16
-    private let cellSize: CGFloat = 11
-    private let cellGap: CGFloat = 2
-
-    private static let monthFmt: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "MMM"
-        return f
-    }()
-
     private static let tooltipFmt: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
         return f
     }()
 
-    // 16 columns (weeks), each column Mon[0]…Sun[6], nil = future
-    private var weekColumns: [[Date?]] {
+    private var weekDays: [DayData] {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        let weekday = cal.component(.weekday, from: today)  // 1=Sun…7=Sat
+        let weekday = cal.component(.weekday, from: today) // 1=Sun…7=Sat
         let daysSinceMon = (weekday - 2 + 7) % 7
         let thisMon = cal.date(byAdding: .day, value: -daysSinceMon, to: today)!
-        let gridStart = cal.date(byAdding: .weekOfYear, value: -(weeksToShow - 1), to: thisMon)!
+        let data = store.dailyMinutes(weeks: 1)
 
-        return (0..<weeksToShow).map { w in
-            let weekStart = cal.date(byAdding: .weekOfYear, value: w, to: gridStart)!
-            return (0..<7).map { d in
-                let day = cal.date(byAdding: .day, value: d, to: weekStart)!
-                return day <= today ? day : nil
-            }
+        return (0..<7).map { offset in
+            let day = cal.date(byAdding: .day, value: offset, to: thisMon)!
+            return DayData(
+                date: day,
+                minutes: day <= today ? (data[day] ?? 0) : 0,
+                isToday: day == today,
+                isFuture: day > today
+            )
         }
     }
 
-    private var dailyData: [Date: Int] {
-        store.dailyMinutes(weeks: weeksToShow + 1)
-    }
-
-    private var maxMinutes: Int {
-        max(dailyData.values.max() ?? 0, 1)
-    }
+    private var maxMinutes: Int { max(weekDays.map(\.minutes).max() ?? 0, 1) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Activity")
+        VStack(alignment: .leading, spacing: 20) {
+            Text("This Week")
                 .font(.headline)
 
-            heatmapSection
-
-            legendView
+            weekChart
 
             Divider()
 
@@ -61,96 +44,15 @@ struct ActivityView: View {
         .padding(24)
     }
 
-    // MARK: - Heatmap
+    // MARK: - Bar chart
 
-    private var heatmapSection: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            monthLabelRow
-
-            HStack(alignment: .top, spacing: cellGap) {
-                // Mon / Wed / Fri labels
-                VStack(alignment: .trailing, spacing: cellGap) {
-                    ForEach(["M", "", "W", "", "F", "", "S"], id: \.self) { lbl in
-                        Text(lbl)
-                            .font(.system(size: 8))
-                            .foregroundStyle(.tertiary)
-                            .frame(width: 8, height: cellSize)
-                    }
-                }
-
-                ForEach(0..<weekColumns.count, id: \.self) { col in
-                    VStack(spacing: cellGap) {
-                        ForEach(0..<7, id: \.self) { row in
-                            cell(for: weekColumns[col][row])
-                        }
-                    }
-                }
+    private var weekChart: some View {
+        HStack(alignment: .bottom, spacing: 6) {
+            ForEach(weekDays) { day in
+                DayColumn(day: day, maxMinutes: maxMinutes)
             }
         }
-    }
-
-    private var monthLabelRow: some View {
-        HStack(alignment: .top, spacing: cellGap) {
-            Color.clear.frame(width: 8 + cellGap, height: 1) // align with day labels
-
-            ForEach(0..<weekColumns.count, id: \.self) { col in
-                let label = monthLabel(for: weekColumns[col])
-                Text(label)
-                    .font(.system(size: 8))
-                    .foregroundStyle(Color.secondary.opacity(label.isEmpty ? 0 : 0.6))
-                    .frame(width: cellSize, height: 10, alignment: .leading)
-            }
-        }
-    }
-
-    private func monthLabel(for week: [Date?]) -> String {
-        guard let first = week.compactMap({ $0 }).first else { return "" }
-        let day = Calendar.current.component(.day, from: first)
-        // Show month name only on the week that contains the 1st–7th of the month
-        return day <= 7 ? Self.monthFmt.string(from: first) : ""
-    }
-
-    @ViewBuilder
-    private func cell(for date: Date?) -> some View {
-        if let date {
-            let minutes = dailyData[date] ?? 0
-            let intensity = Double(minutes) / Double(maxMinutes)
-            RoundedRectangle(cornerRadius: 2)
-                .fill(cellColor(intensity: intensity, hasData: minutes > 0))
-                .frame(width: cellSize, height: cellSize)
-                .help(tooltip(date: date, minutes: minutes))
-        } else {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.clear)
-                .frame(width: cellSize, height: cellSize)
-        }
-    }
-
-    private func cellColor(intensity: Double, hasData: Bool) -> Color {
-        hasData ? Color.red.opacity(0.2 + intensity * 0.75) : Color.secondary.opacity(0.12)
-    }
-
-    private func tooltip(date: Date, minutes: Int) -> String {
-        let d = Self.tooltipFmt.string(from: date)
-        return minutes == 0 ? "\(d): no sessions" : "\(d): \(minutes) min"
-    }
-
-    // MARK: - Legend
-
-    private var legendView: some View {
-        HStack(spacing: 4) {
-            Text("Less")
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
-            ForEach([0.0, 0.25, 0.5, 0.75, 1.0], id: \.self) { v in
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(cellColor(intensity: v, hasData: v > 0))
-                    .frame(width: cellSize, height: cellSize)
-            }
-            Text("More")
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
-        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Stats
@@ -173,6 +75,83 @@ struct ActivityView: View {
         return m == 0 ? "\(h)h" : "\(h)h \(m)m"
     }
 }
+
+// MARK: - Data model
+
+private struct DayData: Identifiable {
+    let id = UUID()
+    let date: Date
+    let minutes: Int
+    let isToday: Bool
+    let isFuture: Bool
+
+    // M T W T F S S
+    static let letters = ["S","M","T","W","T","F","S"]
+    var letter: String {
+        let wd = Calendar.current.component(.weekday, from: date) // 1=Sun
+        return Self.letters[wd - 1]
+    }
+
+    var tooltip: String {
+        let d = DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
+        return minutes == 0 ? "\(d): no sessions" : "\(d): \(minutes) min"
+    }
+}
+
+// MARK: - Single day column
+
+private struct DayColumn: View {
+    let day: DayData
+    let maxMinutes: Int
+
+    private let maxBarHeight: CGFloat = 72
+
+    private var barHeight: CGFloat {
+        guard day.minutes > 0 else { return 0 }
+        return max(CGFloat(day.minutes) / CGFloat(maxMinutes) * maxBarHeight, 5)
+    }
+
+    private var barColor: Color {
+        day.isToday ? .red : .red.opacity(0.45)
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            // bar track + fill
+            ZStack(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.secondary.opacity(0.1))
+                    .frame(height: maxBarHeight)
+
+                if barHeight > 0 {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(barColor)
+                        .frame(height: barHeight)
+                        .animation(.spring(duration: 0.4), value: barHeight)
+                }
+            }
+
+            // minutes (only when > 0)
+            Text(day.minutes > 0 ? fmtMin(day.minutes) : "")
+                .font(.system(size: 8))
+                .foregroundStyle(.tertiary)
+                .frame(height: 10)
+
+            // day letter
+            Text(day.letter)
+                .font(.system(size: 11, weight: day.isToday ? .bold : .regular))
+                .foregroundStyle(day.isFuture ? Color.secondary.opacity(0.35) : (day.isToday ? .primary : .secondary))
+        }
+        .frame(maxWidth: .infinity)
+        .help(day.tooltip)
+    }
+
+    private func fmtMin(_ m: Int) -> String {
+        m < 60 ? "\(m)m" : "\(m/60)h\(m%60 > 0 ? "\(m%60)m" : "")"
+    }
+}
+
+// MARK: - Stat box
 
 private struct StatBox: View {
     let label: String

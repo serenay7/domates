@@ -1,6 +1,5 @@
 import Foundation
 import AppKit
-import UserNotifications
 import Observation
 
 enum TimerPhase: String {
@@ -40,9 +39,6 @@ final class PomodoroTimer {
     var soundEnabled: Bool {
         didSet { UserDefaults.standard.set(soundEnabled, forKey: "soundEnabled") }
     }
-    var notificationsEnabled: Bool {
-        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
-    }
 
     let store = SessionStore()
     private var timer: Timer?
@@ -55,9 +51,8 @@ final class PomodoroTimer {
         workMinutes           = wm
         shortBreakMinutes     = sb
         longBreakMinutes      = lb
-        soundEnabled          = ud.object(forKey: "soundEnabled")          != nil ? ud.bool(forKey: "soundEnabled")          : true
-        notificationsEnabled  = ud.object(forKey: "notificationsEnabled")  != nil ? ud.bool(forKey: "notificationsEnabled")  : true
-        timeRemaining         = TimeInterval(wm * 60)
+        soundEnabled  = ud.object(forKey: "soundEnabled") != nil ? ud.bool(forKey: "soundEnabled") : true
+        timeRemaining = TimeInterval(wm * 60)
     }
 
     func duration(for phase: TimerPhase) -> TimeInterval {
@@ -130,7 +125,6 @@ final class PomodoroTimer {
         }
         timeRemaining = duration(for: phase)
         if soundEnabled { playBell() }
-        if notificationsEnabled { sendNotification() }
     }
 
     private func playBell() {
@@ -151,12 +145,5 @@ final class PomodoroTimer {
         timeRemaining = duration(for: phase)
     }
 
-    private func sendNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = "🍅 Domates"
-        content.body = phase == .work ? "Time to focus!" : "Take a \(phase.label.lowercased())!"
-        content.sound = .default
-        let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(req)
-    }
+
 }

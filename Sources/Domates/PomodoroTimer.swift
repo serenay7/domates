@@ -94,9 +94,17 @@ final class PomodoroTimer {
         timeRemaining = duration(for: phase)
     }
 
-    func skip() {
+    func finishEarly() {
         pause()
-        advance()
+        if phase == .work {
+            let elapsed = Int((duration(for: .work) - timeRemaining) / 60)
+            if elapsed > 0 { store.logFocusSession(minutes: elapsed) }
+            sessionsCompleted += 1
+            phase = sessionsCompleted % 4 == 0 ? .longBreak : .shortBreak
+        } else {
+            phase = .work
+        }
+        timeRemaining = duration(for: phase)
     }
 
     func endDay() {
@@ -136,14 +144,7 @@ final class PomodoroTimer {
         }
     }
 
-    private func advance() {
-        if phase == .work {
-            phase = sessionsCompleted % 4 == 0 ? .longBreak : .shortBreak
-        } else {
-            phase = .work
-        }
-        timeRemaining = duration(for: phase)
-    }
+
 
 
 }

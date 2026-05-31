@@ -140,11 +140,12 @@ private struct MainView: View {
                 }
                 .buttonStyle(.borderless).help(timer.isRunning ? "Pause" : "Start")
 
-                Button(action: timer.skip) {
+                Button(action: timer.finishEarly) {
                     Image(systemName: "forward.end.fill")
                         .font(.title2).foregroundStyle(.secondary)
                 }
-                .buttonStyle(.borderless).help("Skip")
+                .buttonStyle(.borderless)
+                .help(timer.phase == .work ? "Finish session early (logs elapsed time)" : "Skip break")
             }
 
             // Session count + End Day

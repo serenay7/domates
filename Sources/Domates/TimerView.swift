@@ -1,33 +1,87 @@
 import SwiftUI
 
+private enum AppTab { case timer, activity }
+
 struct TimerView: View {
     @Bindable var timer: PomodoroTimer
+    @State private var tab: AppTab = .timer
     @State private var showingSettings = false
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Group {
-                if showingSettings {
-                    SettingsView(timer: timer)
-                } else {
-                    MainView(timer: timer)
+        VStack(spacing: 0) {
+            // ── Content area ──────────────────────────────────────────────
+            ZStack(alignment: .topTrailing) {
+                Group {
+                    if showingSettings {
+                        SettingsView(timer: timer)
+                    } else if tab == .timer {
+                        MainView(timer: timer)
+                    } else {
+                        ActivityView(store: timer.store)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .animation(.easeInOut(duration: 0.18), value: showingSettings)
+                .animation(.easeInOut(duration: 0.18), value: tab)
+
+                Button {
+                    showingSettings.toggle()
+                } label: {
+                    Image(systemName: showingSettings ? "xmark" : "gearshape")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .padding(14)
+            }
+
+            Divider()
+
+            // ── Tab bar ───────────────────────────────────────────────────
+            HStack(spacing: 4) {
+                TabPill(icon: "timer",        label: "Timer",    active: tab == .timer    && !showingSettings) {
+                    tab = .timer; showingSettings = false
+                }
+                TabPill(icon: "chart.bar.fill", label: "Activity", active: tab == .activity && !showingSettings) {
+                    tab = .activity; showingSettings = false
                 }
             }
-            .animation(.easeInOut(duration: 0.2), value: showingSettings)
-
-            Button {
-                showingSettings.toggle()
-            } label: {
-                Image(systemName: showingSettings ? "xmark" : "gearshape")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.borderless)
-            .padding(14)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .frame(width: 300)
     }
 }
+
+// MARK: - Tab pill button
+
+private struct TabPill: View {
+    let icon: String
+    let label: String
+    let active: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                Text(label)
+            }
+            .font(.caption)
+            .fontWeight(active ? .semibold : .regular)
+            .foregroundStyle(active ? .primary : .secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(active ? Color.secondary.opacity(0.12) : Color.clear)
+            )
+        }
+        .buttonStyle(.borderless)
+    }
+}
+
+// MARK: - Main timer content
 
 private struct MainView: View {
     @Bindable var timer: PomodoroTimer
@@ -62,6 +116,7 @@ private struct MainView: View {
             }
             .frame(width: 190, height: 190)
 
+            // Session dots
             HStack(spacing: 10) {
                 ForEach(0..<4, id: \.self) { i in
                     Circle()
@@ -71,44 +126,48 @@ private struct MainView: View {
                 }
             }
 
+            // Controls
             HStack(spacing: 24) {
                 Button(action: timer.reset) {
                     Image(systemName: "arrow.counterclockwise")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
+                        .font(.title2).foregroundStyle(.secondary)
                 }
-                .buttonStyle(.borderless)
-                .help("Reset")
+                .buttonStyle(.borderless).help("Reset")
 
                 Button(action: timer.toggle) {
                     Image(systemName: timer.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 52))
-                        .foregroundStyle(phaseColor)
+                        .font(.system(size: 52)).foregroundStyle(phaseColor)
                 }
-                .buttonStyle(.borderless)
-                .help(timer.isRunning ? "Pause" : "Start")
+                .buttonStyle(.borderless).help(timer.isRunning ? "Pause" : "Start")
 
                 Button(action: timer.skip) {
                     Image(systemName: "forward.end.fill")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
+                        .font(.title2).foregroundStyle(.secondary)
                 }
-                .buttonStyle(.borderless)
-                .help("Skip")
+                .buttonStyle(.borderless).help("Skip")
             }
 
-            Text("\(timer.sessionsCompleted) session\(timer.sessionsCompleted == 1 ? "" : "s") today")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            // Session count + End Day
+            HStack(spacing: 6) {
+                Text("\(timer.sessionsCompleted) session\(timer.sessionsCompleted == 1 ? "" : "s") today")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                if timer.sessionsCompleted > 0 || timer.phase != .work {
+                    Text("·").font(.caption).foregroundStyle(.tertiary)
+                    Button("End day") { timer.endDay() }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
 
             Divider()
 
-            Button("Quit Domates") {
-                NSApplication.shared.terminate(nil)
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .font(.caption)
+            Button("Quit Domates") { NSApplication.shared.terminate(nil) }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .font(.caption)
         }
         .padding(24)
     }

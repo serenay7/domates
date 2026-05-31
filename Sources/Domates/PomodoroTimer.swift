@@ -44,6 +44,7 @@ final class PomodoroTimer {
         didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
     }
 
+    let store = SessionStore()
     private var timer: Timer?
 
     init() {
@@ -103,6 +104,13 @@ final class PomodoroTimer {
         advance()
     }
 
+    func endDay() {
+        pause()
+        sessionsCompleted = 0
+        phase = .work
+        timeRemaining = duration(for: .work)
+    }
+
     private func tick() {
         if timeRemaining > 0 {
             timeRemaining -= 1
@@ -114,6 +122,7 @@ final class PomodoroTimer {
     private func complete() {
         pause()
         if phase == .work {
+            store.logFocusSession(minutes: workMinutes) // log before phase changes
             sessionsCompleted += 1
             phase = sessionsCompleted % 4 == 0 ? .longBreak : .shortBreak
         } else {

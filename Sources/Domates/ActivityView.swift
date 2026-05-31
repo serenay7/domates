@@ -31,7 +31,7 @@ struct ActivityView: View {
     private var maxMinutes: Int { max(weekDays.map(\.minutes).max() ?? 0, 1) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 28) {
             Text("This Week")
                 .font(.headline)
 
@@ -104,7 +104,7 @@ private struct DayColumn: View {
     let day: DayData
     let maxMinutes: Int
 
-    private let maxBarHeight: CGFloat = 72
+    private let maxBarHeight: CGFloat = 110
 
     private var barHeight: CGFloat {
         guard day.minutes > 0 else { return 0 }

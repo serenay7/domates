@@ -18,7 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 430)
+        popover.contentSize = NSSize(width: 300, height: 385)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
             rootView: TimerView(timer: pomodoroTimer)

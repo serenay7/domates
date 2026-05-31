@@ -95,26 +95,26 @@ private struct MainView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 15) {
             Text(timer.phase.label)
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
             ZStack {
                 Circle()
-                    .stroke(Color.secondary.opacity(0.15), lineWidth: 10)
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: 8)
 
                 Circle()
                     .trim(from: 0, to: timer.progress)
-                    .stroke(phaseColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .stroke(phaseColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.8), value: timer.progress)
 
                 Text(timer.timeString)
-                    .font(.system(size: 52, weight: .thin, design: .monospaced))
+                    .font(.system(size: 44, weight: .thin, design: .monospaced))
                     .contentTransition(.numericText())
             }
-            .frame(width: 190, height: 190)
+            .frame(width: 165, height: 165)
 
             // Session dots
             HStack(spacing: 10) {
@@ -136,7 +136,7 @@ private struct MainView: View {
 
                 Button(action: timer.toggle) {
                     Image(systemName: timer.isRunning ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 52)).foregroundStyle(phaseColor)
+                        .font(.system(size: 46)).foregroundStyle(phaseColor)
                 }
                 .buttonStyle(.borderless).help(timer.isRunning ? "Pause" : "Start")
 

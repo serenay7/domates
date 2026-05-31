@@ -1,26 +1,69 @@
 import SwiftUI
+import UserNotifications
 
 struct SettingsView: View {
     @Bindable var timer: PomodoroTimer
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("Durations")
-                .font(.headline)
+            // Durations
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Durations", systemImage: "clock")
+                    .font(.headline)
 
-            VStack(spacing: 16) {
-                DurationRow(label: "Focus", color: .red,   minutes: $timer.workMinutes,       range: 1...120)
+                DurationRow(label: "Focus",       color: .red,   minutes: $timer.workMinutes,       range: 1...120)
                 DurationRow(label: "Short Break", color: .green, minutes: $timer.shortBreakMinutes, range: 1...60)
                 DurationRow(label: "Long Break",  color: .blue,  minutes: $timer.longBreakMinutes,  range: 1...60)
+
+                Text("Changes apply after the current session ends.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
 
-            Text("Changes apply after the current session ends.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
+            Divider()
+
+            // Alerts
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Alerts", systemImage: "bell")
+                    .font(.headline)
+
+                Toggle(isOn: $timer.soundEnabled) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "speaker.wave.2")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16)
+                        Text("Bell sound")
+                    }
+                }
+                .toggleStyle(.switch)
+
+                Toggle(isOn: $timer.notificationsEnabled) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "app.badge")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16)
+                        Text("Notifications")
+                    }
+                }
+                .toggleStyle(.switch)
+                .onChange(of: timer.notificationsEnabled) { _, enabled in
+                    if enabled { requestNotificationPermission() }
+                }
+
+                if timer.notificationsEnabled {
+                    Text("Allow in System Settings › Notifications if banners don't appear.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .padding(24)
         .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 }
 

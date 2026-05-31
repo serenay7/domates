@@ -37,6 +37,12 @@ final class PomodoroTimer {
             if phase == .longBreak && !isRunning { timeRemaining = duration(for: .longBreak) }
         }
     }
+    var soundEnabled: Bool {
+        didSet { UserDefaults.standard.set(soundEnabled, forKey: "soundEnabled") }
+    }
+    var notificationsEnabled: Bool {
+        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
+    }
 
     private var timer: Timer?
 
@@ -45,10 +51,12 @@ final class PomodoroTimer {
         let wm = ud.object(forKey: "workMinutes")       != nil ? ud.integer(forKey: "workMinutes")       : 25
         let sb = ud.object(forKey: "shortBreakMinutes") != nil ? ud.integer(forKey: "shortBreakMinutes") : 5
         let lb = ud.object(forKey: "longBreakMinutes")  != nil ? ud.integer(forKey: "longBreakMinutes")  : 15
-        workMinutes       = wm
-        shortBreakMinutes = sb
-        longBreakMinutes  = lb
-        timeRemaining     = TimeInterval(wm * 60)
+        workMinutes           = wm
+        shortBreakMinutes     = sb
+        longBreakMinutes      = lb
+        soundEnabled          = ud.object(forKey: "soundEnabled")          != nil ? ud.bool(forKey: "soundEnabled")          : true
+        notificationsEnabled  = ud.object(forKey: "notificationsEnabled")  != nil ? ud.bool(forKey: "notificationsEnabled")  : true
+        timeRemaining         = TimeInterval(wm * 60)
     }
 
     func duration(for phase: TimerPhase) -> TimeInterval {
@@ -105,7 +113,6 @@ final class PomodoroTimer {
 
     private func complete() {
         pause()
-        NSSound.beep()
         if phase == .work {
             sessionsCompleted += 1
             phase = sessionsCompleted % 4 == 0 ? .longBreak : .shortBreak
@@ -113,7 +120,17 @@ final class PomodoroTimer {
             phase = .work
         }
         timeRemaining = duration(for: phase)
-        sendNotification()
+        if soundEnabled { playBell() }
+        if notificationsEnabled { sendNotification() }
+    }
+
+    private func playBell() {
+        // "Glass" is a soft, clear bell — falls back to system beep if unavailable
+        if let sound = NSSound(named: NSSound.Name("Glass")) {
+            sound.play()
+        } else {
+            NSSound.beep()
+        }
     }
 
     private func advance() {
